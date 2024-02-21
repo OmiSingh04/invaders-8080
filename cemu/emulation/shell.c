@@ -181,6 +181,8 @@ int main(int argc, char* argv[]){
 				//}
 			#endif
 				emulate_8080(&cpu, &current_cycles);
+		
+
 			#ifdef CPU_DIAG_PRINT
 				//if (instructions_ran > 67385000) 
 					printf("%ld cycles passed\n", cycles_consumed + current_cycles);
@@ -191,6 +193,7 @@ int main(int argc, char* argv[]){
 				total_cycles += current_cycles;
 			#endif
 		} //emulate 1 instruction, n cycles.
+		/*
 		else {
 			double now = al_get_time();
 			if (now - last_time > (1.0 / interrupts_per_second)) {
@@ -207,6 +210,7 @@ int main(int argc, char* argv[]){
 				cycles_consumed -= clocks_per_interrupt;
 			}
 		}
+		*/
 
 		if(al_key_down(&keyboard_state, ALLEGRO_KEY_ESCAPE))
 				break;

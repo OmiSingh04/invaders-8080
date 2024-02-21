@@ -909,7 +909,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* SHLD	*/
 		case 0x22:
 			state->memory[opcode[2] << 8 | opcode[1]] = state->L;
-			state->memory[(opcode[2] << 8 | opcode[1]) + 1] = state->H;
+			state->memory[((opcode[2] << 8 | opcode[1]) + 1) & 0xFFFF] = state->H;
 			bytes = 3;
 			*cycles_consumed = 16;
 			break;
@@ -918,7 +918,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* LHLD	*/	
 		case 0x2A:
 			state->L = state->memory[opcode[2] << 8 | opcode[1]];
-			state->H = state->memory[(opcode[2] << 8 | opcode[1]) + 1];
+			state->H = state->memory[((opcode[2] << 8 | opcode[1]) + 1) & 0xFFFF];
 			bytes = 3;
 			*cycles_consumed = 16;
 			break;
@@ -1125,16 +1125,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			#endif
 			{
 				uint16_t ret = state->pc + 3; //after return, this address will be loaded in pc.
-				state->memory[state->sp - 1] = ret >> 8;
-				state->memory[state->sp - 2] = ret & 0xFF;
-				
-				puts("\n");
-				
-				printf("HIGH - %02X\n", state->memory[state->sp - 1]);
-				printf("LOW - %02X\n", state->memory[state->sp - 2]);
-
-				puts("\n");
-
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->pc = (opcode[2] << 8 | opcode[1]);
 				state->sp -= 2;
 				bytes = 0;
@@ -1148,8 +1140,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xC4: {
 			if (!state->flag.z) {
 				uint16_t ret = state->pc + 3;
-				state->memory[state->sp - 1] = ret >> 8;
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->pc = (opcode[2] << 8 | opcode[1]);
 				state->sp -= 2;
 				*cycles_consumed = 17;
@@ -1166,8 +1158,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xCC: 
 			if(state->flag.z){
 				uint16_t ret = state->pc + 3; 
-				state->memory[state->sp - 1] = ret >> 8; 
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->pc = (opcode[2] << 8 | opcode[1]);		
 				state->sp -= 2;
 				*cycles_consumed = 17;
@@ -1183,8 +1175,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xD4:
 			if (!state->flag.c) {
 				uint16_t ret = state->pc + 3; 
-				state->memory[state->sp - 1] = ret >> 8;
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->pc = (opcode[2] << 8 | opcode[1]);
 				state->sp -= 2;
 				*cycles_consumed = 17;
@@ -1200,8 +1192,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xDC:
 			if (state->flag.c) {
 				uint16_t ret = state->pc + 3;
-				state->memory[state->sp - 1] = ret >> 8;
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->pc = (opcode[2] << 8 | opcode[1]);
 				state->sp -= 2;
 				*cycles_consumed = 17;
@@ -1217,8 +1209,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xE4:
 			if(!state->flag.p){
 				uint16_t ret = state->pc + 3;
-				state->memory[state->sp - 1] = ret >> 8; 
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->sp -= 2;
 				state->pc = (opcode[2] << 8 | opcode[1]);		
 				*cycles_consumed = 17;
@@ -1235,8 +1227,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			
 			if(state->flag.p){
 				uint16_t ret = state->pc + 3; 
-				state->memory[state->sp - 1] = ret >> 8; 
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->sp -= 2;
 				state->pc = (opcode[2] << 8 | opcode[1]);		
 				*cycles_consumed = 17;
@@ -1252,8 +1244,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xF4:
 			if(!state->flag.s){
 				uint16_t ret = state->pc + 3; 
-				state->memory[state->sp - 1] = ret >> 8; 
-				state->memory[state->sp - 2] = ret & 0xFF;
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->sp -= 2;
 				state->pc = (opcode[2] << 8 | opcode[1]);		
 				*cycles_consumed = 17;
@@ -1271,8 +1263,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	
 			if(state->flag.s){
 				uint16_t ret = state->pc + 3; 
-				state->memory[state->sp - 1] = ret >> 8; // more significant
-				state->memory[state->sp - 2] = ret & 0xFF; //less significant
+				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
+				state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 				state->sp -= 2;
 				state->pc = (opcode[2] << 8 | opcode[1]);		
 				*cycles_consumed = 17;
@@ -1290,7 +1282,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RET	*/
 		case 0xC9:
 			//pc must be loaded with the address in the sp
-			state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+			state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 			state->sp += 2;
 			bytes = 0;
 			*cycles_consumed = 10;
@@ -1300,7 +1292,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RC	*/
 		case 0xD8:
 			if(state->flag.c){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1312,7 +1304,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RNC	*/
 		case 0xD0:
 			if(!state->flag.c){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1324,7 +1316,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RZ	*/
 		case 0xC8:
 			if(state->flag.z){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1335,7 +1327,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RNZ	*/
 		case 0xC0:
 			if(!state->flag.z){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1347,7 +1339,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RM	*/
 		case 0xF8:
 			if(state->flag.s){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1359,7 +1351,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RP	*/	
 		case 0xF0:
 			if(!state->flag.s){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1371,7 +1363,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RPE	*/
 		case 0xE8:
 			if(state->flag.p){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1383,7 +1375,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		/* RPO	*/
 		case 0xE0:
 			if(!state->flag.p){
-				state->pc = (state->memory[state->sp + 1] << 8) | state->memory[state->sp];
+				state->pc = (state->memory[(state->sp + 1) & 0xFFFF] << 8) | state->memory[state->sp];
 				state->sp += 2;
 				bytes = 0;
 				*cycles_consumed = 11;
@@ -1510,8 +1502,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		
 		//PUSH B
 		case 0xC5:
-			state->memory[state->sp - 1] = state->B;
-			state->memory[state->sp - 2] = state->C;
+			state->memory[(state->sp - 1) & 0xFFFF] = state->B;
+			state->memory[(state->sp - 2) & 0xFFFF] = state->C;
 			state->sp -= 2;
 			*cycles_consumed = 11;
 			break;
@@ -1519,8 +1511,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		//PUSH D
 		case  0xD5:
-			state->memory[state->sp - 1] = state->D;
-			state->memory[state->sp - 2] = state->E;
+			state->memory[(state->sp - 1) & 0xFFFF] = state->D;
+			state->memory[(state->sp - 2) & 0xFFFF] = state->E;
 			state->sp -= 2;
 			*cycles_consumed = 11;
 			break;
@@ -1528,8 +1520,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		//PUSH H
 		case 0xE5: {
-			state->memory[state->sp - 1] = state->H;
-			state->memory[state->sp - 2] = state->L;
+			state->memory[(state->sp - 1) & 0xFFFF] = state->H;
+			state->memory[(state->sp - 2) & 0xFFFF] = state->L;
 			state->sp -= 2;
 			*cycles_consumed = 11;
 			break;
@@ -1537,7 +1529,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		//PSW
 		case 0xF5: {
-			state->memory[state->sp - 1] = state->A;
+			state->memory[(state->sp - 1) & 0xFFFF] = state->A;
 			uint8_t bits = 0x00;
 			bits |= (state->flag.s << 7);
 			bits |= (state->flag.z << 6);
@@ -1556,30 +1548,28 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		case 0xC1:
 			state->C = state->memory[state->sp];
-			state->B = state->memory[state->sp + 1];
+			state->B = state->memory[(state->sp + 1) & 0xFFFF];
 			state->sp += 2;
 			*cycles_consumed = 10;
 			break;
 
 		case 0xD1:
 			state->E = state->memory[state->sp];
-			state->D = state->memory[state->sp + 1];
+			state->D = state->memory[(state->sp + 1) & 0xFFFF];
 			state->sp += 2;
 			*cycles_consumed = 10;
 			break;
 
 		case 0xE1:
-			printf("sp -> %02X\n", state->memory[state->sp]);
-			printf("sp + 1 -> %02X\n", state->memory[state->sp + 1]);
 			state->L = state->memory[state->sp];
-			state->H = state->memory[state->sp + 1];
+			state->H = state->memory[(state->sp + 1) & 0xFFFF];
 			state->sp += 2;
 			*cycles_consumed = 10;
 			break;
 			
 		case 0xF1:{
 			uint8_t bits = state->memory[state->sp];
-			state->A = state->memory[state->sp + 1];
+			state->A = state->memory[(state->sp + 1) & 0xFFFF];
 			state->sp += 2;
 			//s | z | _ | ac | _ | p | 1 | c
 			state->flag.s = bits >> 7;
@@ -1608,8 +1598,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->L = state->memory[state->sp];
 			state->memory[state->sp] = bit;
 			bit = state->H;
-			state->H = state->memory[state->sp + 1];
-			state->memory[state->sp + 1] = bit;
+			state->H = state->memory[(state->sp + 1) & 0xFFFF];
+			state->memory[(state->sp + 1) & 0xFFFF] = bit;
 			*cycles_consumed = 18;
 			break;
 		}
@@ -1617,7 +1607,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		//SPHL
 		case 0xF9:
 			state->memory[state->sp] = state->L;
-			state->memory[state->sp + 1] = state->H;
+			state->memory[(state->sp + 1) & 0xFFFF] = state->H;
 			*cycles_consumed = 7;
 			break;
 		
@@ -2465,10 +2455,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		bits |= (state->flag.s << 7);
 		bits |= (state->flag.z << 6);
 		bits |= (state->flag.ac << 4);
-		bits |= (state->flag.p << 2);
 		bits |= (1 << 1);
 		bits |= (state->flag.c);
-		printf("stack pointer address - %p\n", &(state->sp));
 		printf("flag %02X\n", bits);
 		printf("pc - %04X\n", state->pc);
 		printf("sp - %04X\n", state->sp);
