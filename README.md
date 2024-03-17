@@ -25,7 +25,10 @@ Player 2 -
 ```
 
 
-Its still extremely buggy, but the CPU passes the diagnostic tests from [CPUDIAG.asm](http://www.emulator101.com/files/cpudiag.asm). <br>
+Its still extremely buggy, but the CPU passes the diagnostic tests from 
+<br>
+[CPUDIAG.asm](http://www.emulator101.com/files/cpudiag.asm). <br>
+[8080PRE.COM](https://altairclone.com/downloads/cpu_tests/). <br>
 It can display the home screen a little bit. <br>
 
 After reading that cpudiag is usually not that thorough, im running it through other tests to check my implementation. I hope to get the game up and running on it soon.

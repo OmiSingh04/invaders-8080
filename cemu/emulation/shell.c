@@ -94,7 +94,7 @@ int main(int argc, char* argv[]){
 
 	puts("Loading Rom...\n");
 	#ifdef CPU_DIAG
-		FILE* file = fopen(PRE_PATH, "rb");
+		FILE* file = fopen(EXM_PATH, "rb");
 	#else
 		FILE* file = fopen(ROM_PATH, "rb");
 	#endif
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]){
 	double last_time = al_get_time();
 
 	bool vblank = false;
-	load_sounds();
+	init_sounds();
 
 	int frames = 0;
 
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]){
 			}
 			else {
 			#ifdef CPU_DIAG_PRINT
-				//if (instructions_ran > 67385000) {
+				//if (instructions_ran > 3749) {
 					disassemble_8080(cpu.memory, cpu.pc, instruction_str_ptr);
 					printf("%s\n", instruction_str_ptr);
 				//}
@@ -184,7 +184,7 @@ int main(int argc, char* argv[]){
 		
 
 			#ifdef CPU_DIAG_PRINT
-				//if (instructions_ran > 67385000) 
+				//if (instructions_ran > 3749) 
 					printf("%ld cycles passed\n", cycles_consumed + current_cycles);
 			#endif
 			}

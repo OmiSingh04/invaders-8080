@@ -1,16 +1,13 @@
 #include <stdio.h>
-
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
+#include <stdbool.h>
 #include "sound.h"
 
-
+#include <allegro5/allegro.h>
 
 ALLEGRO_SAMPLE* sounds[TOTAL_SOUNDS];
 
 
-void load_sounds() {
+bool init_sounds() {
 	char path[256];
 
 	sprintf(path, "%s%s", SOUND_FILES, "/kill.wav");
@@ -36,10 +33,17 @@ void load_sounds() {
 
 	sprintf(path, "%s%s", SOUND_FILES, "/die.wav"); 
 	sounds[UFO] = al_load_sample(path);
+
+
+	//check if all the loads were valid.
+	for (int i = 0; i < TOTAL_SOUNDS; i++)
+		if (!sounds[i]) return false;
+
+	return true;
 }
 
 void play_sound(int sound) {
-	if (sound >= TOTAL_SOUNDS)
+	if (sound >= TOTAL_SOUNDS || sound < 0)
 		return;
 	al_play_sample(sounds[sound], 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
 }

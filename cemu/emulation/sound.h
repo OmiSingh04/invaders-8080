@@ -3,18 +3,15 @@
 
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
+
 #define TOTAL_SOUNDS 8
-
-
 
 enum sound_map {
 	SHOOT = 0, 
-
 	FLEET_MOVEMENT_1,
 	FLEET_MOVEMENT_2,
 	FLEET_MOVEMENT_3,
 	FLEET_MOVEMENT_4,
-
 	DIE,
 	KILL, 
 	UFO
@@ -22,7 +19,7 @@ enum sound_map {
 
 extern ALLEGRO_SAMPLE* sound[];
 
-void load_sounds();
+bool init_sounds();
 void play_sound(int sound);
 void deinit_sounds();
 #endif

@@ -3,14 +3,15 @@ cmake_minimum_required(VERSION 3.20)
 project(emulator8080 C)
 
 set(SOURCES 
-    shell.c input.c state.c file_util.c sound.c display.c disassembler.c)
+    shell.c input.c state.c file_util.c sound.c display.c disassembler.c logger.c memory.c)
 
 set(HEADERS 
-    state.h file_util.h sound.h input.h display.h disassembler.h)
+    state.h file_util.h sound.h input.h display.h disassembler.h logger.h memory.h)
 
 set(ARGS ${CMAKE_SOURCE_DIR}/rom/invaders.rom)
 set(DIAG_PATH ${CMAKE_SOURCE_DIR}/rom/CPUTEST.COM)
 set(EXER_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXER.COM)
+set(EXM_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXM.COM)
 set(PRE_PATH ${CMAKE_SOURCE_DIR}/rom/8080PRE.COM)
 
 
@@ -22,6 +23,7 @@ target_compile_definitions(emulate8080 PRIVATE -DROM_PATH="${ARGS}")
 target_compile_definitions(emulate8080 PRIVATE -DCPUTEST_PATH="${DIAG_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DEXER_PATH="${EXER_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DPRE_PATH="${PRE_PATH}")
+target_compile_definitions(emulate8080 PRIVATE -DEXM_PATH="${EXM_PATH}")
 
 #target_compile_options(emulate8080 PRIVATE ${ARGS}) 
 

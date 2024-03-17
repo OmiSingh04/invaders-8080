@@ -10,9 +10,10 @@
 #define CPU_DIAG
 #define CPU_DIAG_PRINT
 
-int number_of_fs = 0;
+int strings_printed = 0;
+int chars_printed = 0;
 int instructions_ran = 0;
-
+long cycles = 0;
 int init_state(state_8080* state){ //the state will be defined in the main
 	//init the state of the cpu too!!
 	state->memory = malloc(sizeof(char) * 65536);
@@ -164,7 +165,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	int bytes = 1;//assume 1 byte instruction
 
 	#ifdef CPU_DIAG_PRINT
-		if (instructions_ran > 67385000) 
+		if (instructions_ran > 3749) 
 			printf("\nbytes - %02X %02X %02X\n", *opcode, *(opcode + 1), *(opcode + 2));
 	#endif
 
@@ -520,14 +521,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 			/*	M	*/
 		case 0x70:
-#ifdef CPU_DIAG_PRINT
-			printf("Byte at memory %04X was %02X\n", state->H << 8 | state->L, state->memory[state->H << 8 | state->L]);
-#endif
 			state->memory[state->H << 8 | state->L] = state->B;
-#ifdef CPU_DIAG_PRINT
-			printf("Byte at memory %04X is now %02X\n", state->H << 8 | state->L, state->memory[state->H << 8 | state->L]);
-#endif
-			* cycles_consumed = 7;
+			*cycles_consumed = 7;
 			break;
 
 		case 0x71:
@@ -1104,18 +1099,17 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
                 if (state->C == 9){
                     uint16_t offset = (state->D<<8) | (state->E);    
                     char *str = &state->memory[offset];  //skip the prefix bytes    
-					while (*str != '$')  //hopefully ends with $...
+					while (*str != '$') 
 						printf("%c", *str++);
-					puts("\0");
+					strings_printed++;
+		
+					if (strings_printed == 3) {}
+						//exit(0);
                 }    
 				else if (state->C == 2) {
-					if (state->E == 'C')
-						number_of_fs++;
+					if (state->E == '0') chars_printed++;
+					if (chars_printed > 5) exit(0);
 					putchar(state->E);
-					if (number_of_fs == 8) {
-						//printf("Instructions Ran - %ld", instructions_ran);
-						number_of_fs = -100000;
-					}
 				}
             }    
             else if (0 ==  ((opcode[2] << 8) | opcode[1])){    //CALL WBOOT. In EXER8080 its actually as jmp.
@@ -1130,8 +1124,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 				state->pc = (opcode[2] << 8 | opcode[1]);
 				state->sp -= 2;
 				bytes = 0;
-				*cycles_consumed = 17;
 			}
+			*cycles_consumed = 17;
 			break;
 		}
 			/* stack grows from bottom to top. so higher address to lower address*/
@@ -2446,9 +2440,12 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	instructions_ran++;
 	state->pc += bytes;
 
+	cycles += *cycles_consumed;
+
 	#ifdef CPU_DIAG_PRINT
-	//if (instructions_ran > 67385000) {
-		printf("%d instructions ran!\n", instructions_ran);;
+	//if (instructions_ran > 3749) {
+		printf("%d instructions ran!\n", instructions_ran);
+		printf("Cycles run - %ld\n", cycles);
 		printf("Registers - B - %02X C - %02X D - %02X E - %02X H - %02X L - %02X A - %02X\n", state->B, state->C, state->D, state->E, state->H, state->L, state->A);
 		printf("flag c|p|s|z|ac- %d %d %d %d %d\n", state->flag.c, state->flag.p, state->flag.s, state->flag.z, state->flag.ac);
 		uint8_t bits = 0x00;
@@ -2460,11 +2457,13 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		printf("flag %02X\n", bits);
 		printf("pc - %04X\n", state->pc);
 		printf("sp - %04X\n", state->sp);
+		printf("mem[stack] = %02X\n", state->memory[state->sp]);
+		printf("mem[stack + 1] = %02X\n", state->memory[(state->sp + 1) & 0xFFFF]);
 		puts("*********************************************************\n");
 	//}
-	//if (instructions_ran > 67387523)
+	//if (instructions_ran > 20513)
 		//exit(0);
 	#endif
 
-	return 0;
+//	return 0;
 }
