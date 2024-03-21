@@ -6,6 +6,7 @@
 #include "state.h"
 #include "input.h"
 #include "sound.h"
+#include "logger.h"
 
 #define CPU_DIAG
 #define CPU_DIAG_PRINT
@@ -18,10 +19,11 @@ int init_state(state_8080* state){ //the state will be defined in the main
 	//init the state of the cpu too!!
 	state->memory = malloc(sizeof(char) * 65536);
 	if (state->memory == NULL) {
-		puts("Could not allocate memory. Download more RAM");
+		debug_print("Could not allocate heap.", ERROR);
 		return false;
 	}
 	memset(state->memory, 0, 65536);
+	debug_print("Allocated emulator memory.", DEBUG);
 	return true;
 }
 

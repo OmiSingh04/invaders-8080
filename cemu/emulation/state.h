@@ -1,6 +1,11 @@
 #ifndef STATE_8080_H_
 #define STATE_8080_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
+extern int instructions_ran;
+
 typedef struct flag_byte{
 	uint8_t s	:1;
 	uint8_t z	:1;
@@ -43,7 +48,4 @@ bool generate_vblank(state_8080*, uint8_t);
 //IN and OUT instructions, with respect to the space invaders.
 void machine_in(state_8080*, int);
 void machine_out(state_8080*, int);
-
-extern int instructions_ran;
-
 #endif
