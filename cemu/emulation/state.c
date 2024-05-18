@@ -15,6 +15,8 @@ int strings_printed = 0;
 int chars_printed = 0;
 int instructions_ran = 0;
 long cycles = 0;
+
+
 int init_state(state_8080* state){ //the state will be defined in the main
 	//init the state of the cpu too!!
 	state->memory = malloc(sizeof(char) * 65536);

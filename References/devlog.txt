@@ -1,0 +1,20 @@
+THE MAIN COMPONENTS ARE - 
+
+
+	1) LOGGING - output + files
+	2) THE DAMN CPU
+	3) TAKING BDOS SYSCALLS FOR THE TESTS
+	4) DISPLAY
+	5) SOUND
+	6) inputs
+	7) driver
+
+
+18th - Organization
+
+Organize the code.
+I need proper segregation.
+Also, if you are gonna use a wrapper, use it properly, dont let its dependencies leak in other files.
+
+
+in the driver, we first initialize the CPU state.

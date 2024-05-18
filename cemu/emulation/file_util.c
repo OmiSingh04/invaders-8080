@@ -1,5 +1,7 @@
 #include<stdio.h>
 #include<stdbool.h>
+#include <allegro5/allegro.h>
+
 #include<stdint.h>
 #include<string.h>
 #include "logger.h"

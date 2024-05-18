@@ -3,10 +3,6 @@
 #include<stdbool.h>
 #include<stdint.h>
 #include<string.h>
-#include<allegro5/allegro.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
-
 
 #include "file_util.h"
 #include "disassembler.h"
@@ -16,58 +12,28 @@
 #include "sound.h"
 #include "logger.h"
 
-
-#define CPU_DIAG
-#define CPU_DIAG_PRINT
-
-
-ALLEGRO_DISPLAY* create_window(){
-        ALLEGRO_DISPLAY* display = al_create_display(display_width, display_height);
-        al_set_window_title(display, "SPACE INVADERS - 8080");
-        return display;
-}
-
-bool init_allegro_module(){
-
-        if(!al_init())
-                return false;
-
-        if(!al_install_keyboard())
-                return false;
-
-        if(!al_install_audio())
-                return false;
-
-        if(!al_init_acodec_addon())
-                return false;
-	
-		if (!al_init_primitives_addon())
-			return false;
-
-        puts("All Modules Installed!\n");
-        return true;
-}
-
-	
 int main(int argc, char* argv[]){
 
+	init_logger();
+
 	state_8080 cpu = {0, 0, 0, 0, 0, 0, 0, false, {0x00}, 0, 0, 0, 0, NULL};
+
 	if (!init_state(&cpu)){
 		exit(1);
 	}
 
-	#ifdef CPU_DIAG
-		FILE* file = fopen(EXM_PATH, "rb");
-		int offset = 0x100;
-	#else
-		FILE* file = fopen(ROM_PATH, "rb");
-		int offset = 0;
-	#endif
+	FILE* exm = fopen(EXM_PATH, "rb");//provided as args from CMake
+	FILE* exer = fopen(EXER_PATH, "rb");
+	FILE* pre = fopen(PRE_PATH, "rb");
+	FILE* cputest = fopen(DIAG_PATH, "rb");
+	int exm_offset = 0x100;
+	FILE* rom = fopen(ROM_PATH, "rb");
+	int rom_offset = 0;
 
-	bool x = read_file(file, cpu.memory, offset);
+	bool x = read_file(exm, cpu.memory, exm_offset);
 	if (!x) {
 		free(cpu.memory);
-		fclose(file);
+		fclose(exm);
 		exit(1);
 	}
 	
@@ -83,6 +49,9 @@ int main(int argc, char* argv[]){
 	debug_print("CPU set up!\n", DEBUG); 
 	char* instruction_str_ptr = malloc(20);
 
+	int display_height = 768;
+	int display_width = 672;
+		
 	/*
 	bool setup = init_allegro_module();
 	ALLEGRO_DISPLAY* display = create_window();

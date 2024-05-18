@@ -6,7 +6,7 @@
 */
 #include <stdio.h>
 
-#define LOG_LEVELS 4
+#define LOG_LEVELS 3
 #define LOG_FILES 2
 
 enum log_level{

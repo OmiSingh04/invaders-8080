@@ -36,6 +36,11 @@ void debug_print(const char* message, int level) {
 	printf("[%s] : %s\n", str, message);
 }
 
+void log_emulator_status(const char* message, int level) {
+	set_level(level);
+	fprintf(log_files[STATUS], "[%s] : %s", str, message);
+}
+
 void log_instruction(state_8080 state, int cycles, int start_instruction, int end_instruction) {
 	if (instructions_ran >= start_instruction && instructions_ran <= end_instruction) {
 		fprintf(log_files[INSTRUCTIONS], "%d instructions ran!\n", instructions_ran);
@@ -55,11 +60,6 @@ void log_instruction(state_8080 state, int cycles, int start_instruction, int en
 		fprintf(log_files[INSTRUCTIONS], "mem[stack + 1] = %02X\n", state.memory[(state.sp + 1) & 0xFFFF]);
 		fprintf(log_files[INSTRUCTIONS], "*********************************************************\n");
 	}
-}
-
-void log_emulator_status(const char* message, int level) {
-	set_level(level);
-	fprintf(log_files[STATUS], "[%s] : %s", str, message);
 }
 
 void terminate_logger() {

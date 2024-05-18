@@ -14,7 +14,6 @@ set(EXER_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXER.COM)
 set(EXM_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXM.COM)
 set(PRE_PATH ${CMAKE_SOURCE_DIR}/rom/8080PRE.COM)
 
-
 add_executable(emulate8080 ${SOURCES} ${HEADERS})
 
 target_compile_features(emulate8080 PRIVATE c_std_17)
@@ -24,6 +23,7 @@ target_compile_definitions(emulate8080 PRIVATE -DCPUTEST_PATH="${DIAG_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DEXER_PATH="${EXER_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DPRE_PATH="${PRE_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DEXM_PATH="${EXM_PATH}")
+target_compile_definitions(emulate8080 PRIVATE -DDIAG_PATH="${DIAG_PATH}")
 
 #target_compile_options(emulate8080 PRIVATE ${ARGS}) 
 
