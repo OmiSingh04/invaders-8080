@@ -1,26 +1,18 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include <allegro5/allegro.h>
-
 #include<stdint.h>
 #include<string.h>
+#include "state.h"
 #include "logger.h"
+#include "file_util.h"
 
-static long file_size(FILE* file){
-	fseek(file, 0L, SEEK_END);
-	long size = ftell(file);
-	fseek(file, 0L, SEEK_SET);
-	char str[30];
-	sprintf(str, "%ld - Size of the file", size);
-	debug_print(str, DEBUG);
-	return size;
-}
+FILE* file = NULL;
 
-bool read_file(FILE* file, uint8_t* buffer, int offset){
+static bool read_file(FILE* file, uint8_t* buffer, int offset){
 	long size = file_size(file);
-
 	if (size > 65536) {
-		debug_print("Cannot load file to memory", ERROR); 
+		debug_print("File too large", ERROR); 
 		return false;
 	}
 	memset(buffer, 0, size);
@@ -29,11 +21,52 @@ bool read_file(FILE* file, uint8_t* buffer, int offset){
 	sprintf(str, "%u - bytes read...", read_size);
 	debug_print(str, DEBUG);
 	if (read_size != size) {
-		sprintf(str, "File Size and Bytes read differ in size!");
+		sprintf(str, "File size and bytes read differ in size!");
 		debug_print(str, ERROR);
 		return false;
 	}
-
 	return true;
 }
 
+static long file_size(FILE* file){
+	fseek(file, 0L, SEEK_END);
+	long size = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+	printf("%ld - Size of the file\n", size);
+	return size;
+}
+
+int load_file(state_8080* cpu, char type){
+	int offset = 0x100;
+	switch (type) {
+		case EXM: 
+			file = fopen(EXM_PATH, "rb");
+			break;
+		case PRE: 
+			file = fopen(PRE_PATH, "rb");
+			break;
+		case CPUTEST: 
+			file = fopen(DIAG_PATH, "rb");
+			break;
+		case ROM: 
+			file = fopen(ROM_PATH, "rb");
+			offset = 0;
+			break;
+		case EXER: 
+			file = fopen(EXER_PATH, "rb");
+			break;
+
+		default:
+			file = fopen(ROM_PATH, "rb");
+			offset = 0;
+	}
+	if (offset == 0x100) {
+		cpu->memory[0] = 0xD3;
+		cpu->memory[0x0005] = 0xD3;
+		cpu->memory[0x0006] = 0x01;
+		cpu->memory[0x0007] = 0xC9;
+	}
+
+	bool x = read_file(file, cpu->memory, offset);
+	return (x) ? offset : -1;
+}

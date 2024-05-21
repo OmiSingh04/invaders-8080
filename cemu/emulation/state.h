@@ -39,6 +39,9 @@ typedef struct state_8080{ //registers
 	
 	uint8_t* memory;
 
+	unsigned long cycles_consumed;
+	unsigned long instructions_ran;
+
 } state_8080;
 
 int init_state(state_8080*);
@@ -48,4 +51,5 @@ bool generate_vblank(state_8080*, uint8_t);
 //IN and OUT instructions, with respect to the space invaders.
 void machine_in(state_8080*, int);
 void machine_out(state_8080*, int);
+void deinit_state(state_8080*);
 #endif

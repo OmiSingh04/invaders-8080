@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 #include <stdint.h>
-bool read_file(FILE*, uint8_t*, int);
+#include "state.h"
+
+enum rom { EXM = '5', EXER = '4', PRE = '3', CPUTEST = '2', ROM = '1' };
+
+int load_file(state_8080*, char);
 
 #endif

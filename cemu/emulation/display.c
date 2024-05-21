@@ -4,7 +4,10 @@
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 
+//&& al_init_acodec_adon() 
 // 256 x 224 / 8 bytes = 7168 bytes. In hex - 1C11 bytes. from 0x0000 to 0x1C10. 
 // Since the VRAM starts from 0x2400, we simply offset.
 #define VRAM_START 0x2400
@@ -14,10 +17,9 @@ static bool init_allegro_module(){
 	if(	!( al_init() 
 		&& al_install_keyboard() 
 		&& al_install_audio() 
-		&& al_init_acodec_adon() 
 		&& al_init_primitives_addon())
 	){
-		debug_
+		debug_print("Whale", DEBUG);
 		return false;
 	}
 
@@ -27,7 +29,11 @@ static bool init_allegro_module(){
 
 
 //so im going to be drawing from the bottom up, left to right
-ALLEGRO_DISPLAY* create_window(int display_width, int display_height) {
+ALLEGRO_DISPLAY* init_window(int display_width, int display_height) {
+
+	if (!init_allegro_module())
+		return NULL;
+
 	ALLEGRO_DISPLAY* display = al_create_display(display_width, display_height);
 	al_set_window_title(display, "SPACE INVADERS - 8080");
 	return display;

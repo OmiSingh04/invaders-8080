@@ -8,14 +8,6 @@
 #include "sound.h"
 #include "logger.h"
 
-#define CPU_DIAG
-#define CPU_DIAG_PRINT
-
-int strings_printed = 0;
-int chars_printed = 0;
-int instructions_ran = 0;
-long cycles = 0;
-
 
 int init_state(state_8080* state){ //the state will be defined in the main
 	//init the state of the cpu too!!
@@ -27,6 +19,10 @@ int init_state(state_8080* state){ //the state will be defined in the main
 	memset(state->memory, 0, 65536);
 	debug_print("Allocated emulator memory.", DEBUG);
 	return true;
+}
+
+void deinit_state(state_8080* state) {
+	free(state->memory);
 }
 
 
@@ -161,6 +157,29 @@ void machine_out(state_8080* state, int port) {
 }
 
 
+static void log_cpm(const char* str) {
+	//assumes str is '$' terminated.
+	int length = 0;
+	char* ptr = str;
+	while (*ptr != '$') {
+		ptr++;
+		length++;
+	}
+	char *output = malloc(length + 1);
+	if (output == NULL)
+		debug_print("Could not alloc for string", ERROR);
+	else {
+		memset(output, 0, length + 1);
+		char* ptr = output;
+		while (*str != '$') {
+			ptr++;
+			str++;
+			*ptr = *str;
+		}
+		log_emulator_status(output, BDOS);
+	}
+}
+
 //CYCLES CONSUMED - CLOCK CYCLES. not MACHINE cycles.
 int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	//going to take in 1 instruction... it is going to perform that instruction
@@ -168,12 +187,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	*cycles_consumed = 1;//by default, it is 1. Now where it does consume more, i will simply change it.
 	int bytes = 1;//assume 1 byte instruction
 
-	#ifdef CPU_DIAG_PRINT
-		if (instructions_ran > 3749) 
-			printf("\nbytes - %02X %02X %02X\n", *opcode, *(opcode + 1), *(opcode + 2));
-	#endif
-
-		switch (*opcode) {
+	switch (*opcode) {
 
 			/* NOP (or undefined by the Reference Card)*/
 		case 0x00:
@@ -973,19 +987,17 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		/* JMP	*/
 		case 0xC3:
-		#ifdef CPU_DIAG
-		if ((opcode[2] << 8 | opcode[1]) == 0) {
-			
-			puts("CALLED JMP $0000");
-			exit(0);
-		}
-		else
-		#endif
-		{
-			state->pc = opcode[2] << 8 | opcode[1];
-			bytes = 0;
-			*cycles_consumed = 10;
-		}
+			if ((opcode[2] << 8 | opcode[1]) == 0) {
+				
+				puts("CALLED JMP $0000");
+				exit(0);
+			}
+			else
+			{
+				state->pc = opcode[2] << 8 | opcode[1];
+				bytes = 0;
+				*cycles_consumed = 10;
+			}
 			break;
 	
 
@@ -1096,31 +1108,22 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 				EZ
 			*/
 		case 0xCD:{
-			#ifdef CPU_DIAG    
 			int val = ((opcode[2] << 8) | opcode[1]);
             if (5 == val){
 				bytes = 3;
                 if (state->C == 9){
                     uint16_t offset = (state->D<<8) | (state->E);    
-                    char *str = &state->memory[offset];  //skip the prefix bytes    
-					while (*str != '$') 
-						printf("%c", *str++);
-					strings_printed++;
-		
-					if (strings_printed == 3) {}
-						//exit(0);
+                    const char *str = &state->memory[offset];  //skip the prefix bytes    
+					log_cpm(str);
                 }    
 				else if (state->C == 2) {
-					if (state->E == '0') chars_printed++;
-					if (chars_printed > 5) exit(0);
-					putchar(state->E);
+					log_emulator_status_ch(state->E);
 				}
             }    
             else if (0 ==  ((opcode[2] << 8) | opcode[1])){    //CALL WBOOT. In EXER8080 its actually as jmp.
-				exit(0);//this here is mem leak
+				exit(0); //is this a memory leak
             }
 			else
-			#endif
 			{
 				uint16_t ret = state->pc + 3; //after return, this address will be loaded in pc.
 				state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8;
@@ -2429,45 +2432,14 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			bytes = 1;
 			break;
 
-
 		default: {
-			//if this ever runs, i may have missed updating bytes or updating it wrong, causing misalignments 
-			printf("UNIMPLEMENTED INSTRUCTION!!! - %02X\n", *opcode);
-			printf("reg- %02X\t%02X\t%02X\t%02X\t%02X\t%02X\t%02X\t\n", state->B, state->C, state->D, state->E, state->H, state->L, state->A);
-			printf("flag- %d\t%d\t%d\t%d\t%04X\t\n", state->flag.c, state->flag.p, state->flag.s, state->flag.z, state->pc);
-			printf("pc - %02x\n", state->pc);
+			debug_print("UNIMPLEMENTED INSTRUCTION!", ERROR);
+			printf("instruction opcode - %02X", *opcode);
 		}
-
-		/* ITS FUCKING DONE MATE!!!!	*/
 	}
 	
-	instructions_ran++;
-	state->pc += bytes;
-
-	cycles += *cycles_consumed;
-
-	#ifdef CPU_DIAG_PRINT
-	//if (instructions_ran > 3749) {
-		printf("%d instructions ran!\n", instructions_ran);
-		printf("Cycles run - %ld\n", cycles);
-		printf("Registers - B - %02X C - %02X D - %02X E - %02X H - %02X L - %02X A - %02X\n", state->B, state->C, state->D, state->E, state->H, state->L, state->A);
-		printf("flag c|p|s|z|ac- %d %d %d %d %d\n", state->flag.c, state->flag.p, state->flag.s, state->flag.z, state->flag.ac);
-		uint8_t bits = 0x00;
-		bits |= (state->flag.s << 7);
-		bits |= (state->flag.z << 6);
-		bits |= (state->flag.ac << 4);
-		bits |= (1 << 1);
-		bits |= (state->flag.c);
-		printf("flag %02X\n", bits);
-		printf("pc - %04X\n", state->pc);
-		printf("sp - %04X\n", state->sp);
-		printf("mem[stack] = %02X\n", state->memory[state->sp]);
-		printf("mem[stack + 1] = %02X\n", state->memory[(state->sp + 1) & 0xFFFF]);
-		puts("*********************************************************\n");
-	//}
-	//if (instructions_ran > 20513)
-		//exit(0);
-	#endif
-
-//	return 0;
+	//the entire state the runtime is encapsulated into one struct now, which can be passed around, especially helpful with the logger, especially helpful with the logger
+	state->cycles_consumed += *cycles_consumed;//cycles are updated
+	state->instructions_ran++;//so are the total number of instructions ran
+	state->pc += bytes;//total instructions to be run are also updated
 }

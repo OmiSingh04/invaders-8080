@@ -5,7 +5,7 @@
 		STATUS - we print whether an init was successfull or failed.
 */
 #include <stdio.h>
-
+#include <stdbool.h>
 #define LOG_LEVELS 3
 #define LOG_FILES 2
 
@@ -21,8 +21,12 @@ enum log_files {
 	INSTRUCTIONS
 };
 
+extern bool continue_test;
+
 void init_logger();							//init the files used for logging
 void debug_print(const char*, int);			//to stdout. param - string, log-level
-void debug_log_instructions(state_8080);	//to file. param - cpu-state BEFORE INSTRUCTION EXECUTION.
+void log_instruction_state(state_8080);	//to file. param - cpu-state BEFORE INSTRUCTION EXECUTION.
+void log_emulator_status_ch(const char ch);
+void log_emulator_status(const char*, int);
 void terminate_logger();					//flush and close files.
 #endif

@@ -9,6 +9,7 @@ int disassemble_8080(unsigned char* buffer, uint16_t pc, char* output){
 
 	sprintf(output, "%04X ", pc);
 	output += 5;
+
 	switch(*opcode){
 
 

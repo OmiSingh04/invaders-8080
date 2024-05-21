@@ -1,0 +1,28 @@
+0000 - 1FFF 8K ROM
+2000 - 23FF 1K RAM
+2400 - 3FFF 7K Video RAM
+4000 - ~    RAM mirror
+
+8k ROM - 
+invaders.h 0000-07FF
+invaders.g 0800-0FFF
+invaders.f 1000-17FF
+invaders.e 1800-1FFF
+
+
+Video - 256 x 224. - height x width!
+Each pixel is on or off. (Hence requires one bit)
+256 x 224 / 8 = 7168 ~ 7k bytes
+
+Max. CPU clock rate	2 MHz to 3.125 MHz
+
+So the idea we will go for is - we have 2MHz clock rate. meaning 2 Million cycles can occur in 1 second
+We have the video output going at 60 Hz
+To sync our instructions to the video output, we run 2 million clock cycles/s / 60 frames/s = which is 33333 cycles / frame.
+So we process 33333 cycles for the next frame, then wait until 1/60 of a second, since this cpu is much faster. :)
+
+I have also not implemented full/half vblank yet.
+
+You have 2 different interrupts generated at 60 Hz, one when the beam is near the middle of the screen, and one at the end of the screen
+To simulate this, we generate could... generate 120 Hz in the loop, and each would alternatively mean the two different RSTs.
+ 
