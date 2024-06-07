@@ -8,6 +8,8 @@
 #include "sound.h"
 #include "logger.h"
 
+static bool cpm_call = false;
+
 
 int init_state(state_8080* state){ //the state will be defined in the main
 	//init the state of the cpu too!!
@@ -48,6 +50,7 @@ int parity_check(uint8_t byte){
 * IN - 8 bit data byte is read from a device (a number in the second byte of the instruction) and put it in the accumulator.
 * OUT - 8 bit data byte is written from the accumulator to a device (a number in the second byte of the instruction)
 */
+
 
 bool generate_vblank(state_8080* state, uint8_t opcode){//emulate the generation of vblank interrupts from the video controller
 	//actually the 
@@ -165,11 +168,12 @@ static void log_cpm(const char* str) {
 		ptr++;
 		length++;
 	}
-	char *output = malloc(length + 1);
+	length++;//should not overflow
+	char *output = malloc(length);
 	if (output == NULL)
 		debug_print("Could not alloc for string", ERROR);
 	else {
-		memset(output, 0, length + 1);
+		memset(output, 0, length);
 		char* ptr = output;
 		while (*str != '$') {
 			ptr++;
@@ -178,6 +182,22 @@ static void log_cpm(const char* str) {
 		}
 		log_emulator_status(output, BDOS);
 	}
+	free(output);
+}
+
+//perhaps having seperate functions for 8 bit addition and subtraction may help...
+
+
+static uint8_t subtract(uint8_t x, uint8_t y, state_8080* state) {
+	uint8_t ret = ~y;
+	ret++;
+	ret += x;
+	state->flag.ac = ((x & 0xf) + ((~y + 1) & 0xf) >> 4) & 1; //i dont know why this is wrong but i dont even care anymore
+	state->flag.c = (y > x);
+	state->flag.s = (ret >> 7);
+	state->flag.z = (ret == 0);
+	state->flag.p = parity_check(ret);
+	return ret;
 }
 
 //CYCLES CONSUMED - CLOCK CYCLES. not MACHINE cycles.
@@ -186,9 +206,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 	uint8_t* opcode = &state->memory[state->pc];
 	*cycles_consumed = 1;//by default, it is 1. Now where it does consume more, i will simply change it.
 	int bytes = 1;//assume 1 byte instruction
-
 	switch (*opcode) {
-
 			/* NOP (or undefined by the Reference Card)*/
 		case 0x00:
 		case 0x10:
@@ -728,8 +746,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 			/* DCR */
 		case 0x05:
-			uint8_t Bi = state->B--;
-			state->flag.ac = !!((Bi ^ state->B) & 0x10);
+			state->flag.ac = (((state->B & 0xF) + 0xF) > 0xF);
+			state->B--;
 			state->flag.z = (state->B == 0);
 			state->flag.s = (state->B >> 7);
 			state->flag.p = parity_check(state->B);
@@ -737,8 +755,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			break;
 
 		case 0x0D:
-			uint8_t Ci = state->C--;
-			state->flag.ac = !!((Bi ^ state->B) & 0x10);
+			state->flag.ac = (((state->C & 0xF) + 0xF) > 0xF);
+			state->C--;
 			state->flag.z = (state->C == 0);
 			state->flag.s = (state->C >> 7);
 			state->flag.p = parity_check(state->C);
@@ -746,7 +764,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			break;
 
 		case 0x15:
-			state->flag.ac = (state->C & 0xF) != 0xF;
+			state->flag.ac = (((state->D & 0xF) + 0xF) > 0xF);
 			state->D--;
 			state->flag.z = (state->D == 0);
 			state->flag.s = (state->D >> 7);
@@ -755,7 +773,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			break;
 
 		case 0x1D:
-			state->flag.ac = (state->E & 0xF) != 0xF;
+			state->flag.ac = (((state->E & 0xF) + 0xF) > 0xF);
 			state->E--;
 			state->flag.z = (state->E == 0);
 			state->flag.s = (state->E >> 7);
@@ -765,7 +783,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 
 		case 0x25:
-			state->flag.ac = (state->H & 0xF) != 0xF;
+			state->flag.ac = (((state->H & 0xF) + 0xF) > 0xF);
 			state->H--;
 			state->flag.z = (state->H == 0);
 			state->flag.s = (state->H >> 7);
@@ -775,7 +793,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 
 		case 0x2D:
-			state->flag.ac = (state->L & 0xF) != 0xF;
+			state->flag.ac = (((state->L & 0xF) + 0xF) > 0xF);
 			state->L--;
 			state->flag.z = (state->L == 0);
 			state->flag.s = (state->L >> 7);
@@ -841,7 +859,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		case 0x09:{
 			uint32_t ans = state->H << 8 | state->L;
-			ans += state->B << 8 | state->C;
+			ans += (state->B << 8 | state->C);
 			//if result is larger than 16 bits, state is set
 			state->flag.c = ans > 0xFFFF;
 			state->H = (ans & 0xFF00) >> 8;
@@ -1112,16 +1130,18 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
             if (5 == val){
 				bytes = 3;
                 if (state->C == 9){
+					cpm_call = true;
                     uint16_t offset = (state->D<<8) | (state->E);    
                     const char *str = &state->memory[offset];  //skip the prefix bytes    
 					log_cpm(str);
                 }    
 				else if (state->C == 2) {
+					cpm_call = true;
 					log_emulator_status_ch(state->E);
 				}
             }    
             else if (0 ==  ((opcode[2] << 8) | opcode[1])){    //CALL WBOOT. In EXER8080 its actually as jmp.
-				exit(0); //is this a memory leak
+				exit(0);
             }
 			else
 			{
@@ -1426,28 +1446,14 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		// SUI
 		case 0xD6:{
-			uint8_t x = state->A;
-			uint8_t y = opcode[1];
-			int16_t ans = (int16_t)x - (int16_t)y;
-			state->flag.ac = (x & 0xF) < (y & 0xF);
-			state->flag.c = ans < 0; //??
-			state->flag.s = (ans & 0x80) >> 7;
-			state->flag.z = (ans & 0xff) == 0;
-			state->flag.p = parity_check(ans & 0xff);
-			state->A = ans & 0xff;
+			state->A = subtract(state->A, opcode[1], state);
 			bytes = 2;
 			*cycles_consumed = 7;
 			break;
 		}
 		// SBI
 		case 0xDE:{
-			uint16_t ans = (uint16_t)state->A - (uint16_t)(opcode[1] + state->flag.c);
-			state->flag.ac = (state->A & 0xF) < ((opcode[1] + state->flag.c) & 0xF);
-			state->flag.c = ans > 0xff;
-			state->flag.s = (ans & 0x80) >> 7;
-			state->flag.z = (ans & 0xff) == 0;
-			state->flag.p = parity_check(ans & 0xff);
-			state->A = ans & 0xff;
+			state->A = subtract(state->A, opcode[1] + state->flag.c, state);
 			bytes = 2;
 			*cycles_consumed = 7;
 			break;
@@ -1456,7 +1462,8 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		//ANI
 		case 0xE6:
 			state->A = state->A & opcode[1];
-			state->flag.c = 0;//
+			state->flag.c = 0;
+			state->flag.ac = 0;
 			state->flag.z = state->A == 0;
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
@@ -1472,6 +1479,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = state->A == 0;
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			bytes = 2;
 			*cycles_consumed = 7;
 			break;
@@ -1480,6 +1488,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xF6:
 			state->A = state->A | opcode[1];
 			state->flag.c = 0;
+			state->flag.ac = 0;
 			state->flag.z = state->A == 0;
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
@@ -1838,96 +1847,47 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		// SUB instructions - SUB B, C, D, E, H, L, M, A
 
 		case 0x90:{
-			//x - y
-			uint16_t result = state->A + (1 + ~state->B);
-			state->flag.ac = (state->A & 0xF) < (state->B & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->B, state);
 			*cycles_consumed = 4;
 			break;		
 		}
 					
 		case 0x91:{
-			uint16_t result = state->A + (1 + ~state->C);
-			state->flag.ac = (state->A & 0xF) < (state->C & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->C, state);
 			*cycles_consumed = 4;
 			break;
 		}
 		case 0x92:{
-			uint16_t result = state->A + (1 + ~state->D);
-			state->flag.ac = (state->A & 0xF) < (state->D & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->D, state);
 			*cycles_consumed = 4;
 			break;
 		}
 		case 0x93:{
-			uint16_t result = state->A + (1 + ~state->E);
-			state->flag.ac = (state->A & 0xF) < (state->E & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->E, state);
 			*cycles_consumed = 4;
 			break;
 		}
 
 		case 0x94:{
-			uint16_t result = state->A + (1 + ~state->H);
-			state->flag.ac = (state->A & 0xF) < (state->H & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->H, state);
 			*cycles_consumed = 4;
 			break;
 		}
 
 		case 0x95:{
-			uint16_t result = state->A + (1 + ~state->L);
-			state->flag.ac = (state->A & 0xF) < (state->L & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->L, state);
 			*cycles_consumed = 4;
 			break;
 		}
 
 		case 0x96:{
-			uint16_t result = state->A + (1 + ~state->memory[state->H << 8 | state->L]);
-			state->flag.ac = (state->A & 0xF) < ((state->memory[state->H << 8 | state->L]) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->memory[state->H << 8 | state->L], state);
 			*cycles_consumed = 7;
 			break;
 		}
 
 		case 0x97:{
-			uint16_t result = state->A + (1 + ~state->A);
-			state->flag.ac = (state->A & 0xF) < (state->A & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->A, state);
 			*cycles_consumed = 4;
 			break;
 		}
@@ -1935,96 +1895,48 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 		//SBB
 		case 0x98:{
-			uint16_t result = state->A + (1 + ~(state->B + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->B + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->B + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;		
 		}
 
 		case 0x99:{
-			uint16_t result = state->A + (1 + ~(state->C + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->C + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->C + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;		
 		}
 
 		case 0x9A:{
-			uint16_t result = state->A + (1 + ~(state->D + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->D + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->D + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;		
 		}
 
 		case 0x9B:{
-			uint16_t result = state->A + (1 + ~(state->E + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->E + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->E + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;
 		}
 
 		case 0x9C:{
-			uint16_t result = state->A + (1 + ~(state->H + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->H + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->H + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;
 		}
 		case 0x9D:{
-			uint16_t result = state->A + (1 + ~(state->L + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->L + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->L + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;		
 		}
 
 		case 0x9E:{
-			uint16_t result = state->A + (1 + ~((state->memory[state->H << 8 | state->L] + state->flag.c)));
-			state->flag.ac = (state->A & 0xF) < (((state->memory[state->H << 8 | state->L]) + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->memory[state->H << 8 | state->L] + state->flag.c, state);
 			*cycles_consumed = 7;
 			break;		
 		}
 
 		case 0x9F:{
-			uint16_t result = state->A + (1 + ~(state->A + state->flag.c));
-			state->flag.ac = (state->A & 0xF) < ((state->A + state->flag.c) & 0xF);
-			state->A = result & 0xFF;
-			state->flag.c = (result > 0xff);
-			state->flag.s = ((result & 0x80) >> 7);
-			state->flag.z = ((result & 0xff) == 0);
-			state->flag.p = parity_check(result & 0xFF);
+			state->A = subtract(state->A, state->A + state->flag.c, state);
 			*cycles_consumed = 4;
 			break;		
 		}
@@ -2192,6 +2104,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2201,6 +2114,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2210,6 +2124,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2219,6 +2134,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2228,6 +2144,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2237,6 +2154,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
@@ -2246,6 +2164,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 7;
 			break;
 		
@@ -2255,101 +2174,46 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->flag.z = (state->A == 0);
 			state->flag.s = state->A >> 7;
 			state->flag.p = parity_check(state->A);
+			state->flag.ac = 0;
 			*cycles_consumed = 4;
 			break;
 		
 		//CMP - 
 		case 0xB8:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->B;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->B & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->B, state);
 			*cycles_consumed = 4;
 			break;
 		}
-						
+
 		case 0xB9:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->C;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->C & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->C, state);
 			*cycles_consumed = 4;
 			break;
 		}		
 		case 0xBA:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->D;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->D & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->D, state);
 			*cycles_consumed = 4;
 			break;
 		}
 						
 		case 0xBB:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->E;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->E & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->E, state);
 			*cycles_consumed = 4;
 			break;
 		}
 		case 0xBC:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->H;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->H & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->H, state);
 			*cycles_consumed = 4;
 			break;
 		}
 						
 		case 0xBD:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->L;
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < (state->L & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->L, state);
 			*cycles_consumed = 4;
 			break;
 		}		
 		case 0xBE:{
-			int16_t x, y;
-			x = (int16_t) state->A;
-			y = (int16_t) state->memory[state->H << 8 | state->L];
-			x -= y;
-			state->flag.ac = (state->A & 0xF) < ((state->memory[state->H << 8 | state->L]) & 0xF);
-			state->flag.z = (x == 0);
-			state->flag.c = (state->B > state->A);
-			state->flag.s = (0xFF & x) >> 7;
-			state->flag.p = parity_check(0xFF & x);
+			subtract(state->A, state->memory[state->H << 8 | state->L], state);
 			*cycles_consumed = 4;
 			break;
 		}		
@@ -2429,6 +2293,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0x76:
 			*cycles_consumed = 7;
 			puts("HALT INSTRUCTION");
+			//TODO: WAITS FOR A DAMN INTERRUPT
 			bytes = 1;
 			break;
 
@@ -2437,9 +2302,19 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			printf("instruction opcode - %02X", *opcode);
 		}
 	}
-	
 	//the entire state the runtime is encapsulated into one struct now, which can be passed around, especially helpful with the logger, especially helpful with the logger
 	state->cycles_consumed += *cycles_consumed;//cycles are updated
 	state->instructions_ran++;//so are the total number of instructions ran
 	state->pc += bytes;//total instructions to be run are also updated
+
+
+	if (cpm_call) {
+		cpm_call = false;
+		//we need special log
+		state->instructions_ran++;
+		state->cycles_consumed += 10;
+		extern bool x;
+		if (x) log_instruction_state_ret(*state);
+	}
+
 }

@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "file_util.h"
 
-FILE* file = NULL;
+static FILE* file = NULL;
 
 static bool read_file(FILE* file, uint8_t* buffer, int offset){
 	long size = file_size(file);

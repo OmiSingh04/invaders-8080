@@ -15,11 +15,9 @@ typedef struct flag_byte{
 	uint8_t p	:1;
 	uint8_t		:1;
 	uint8_t c	:1;
-
 } flag_byte; //i might make it a union with another char
  
 typedef struct state_8080{ //registers
-
 	uint8_t B;
 	uint8_t C;
 	uint8_t D;

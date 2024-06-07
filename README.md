@@ -33,6 +33,8 @@ It can display the home screen a little bit. <br>
 
 After reading that cpudiag is usually not that thorough, im running it through other tests to check my implementation. I hope to get the game up and running on it soon.
 
-![Game](cemu/emulation/res/sample.png)
+I have given up hope on passing CPUTEST. It requires a proper implementation of the auxillary carry but i cant get that right.
 
-Beyond this point I have little idea where errors could occur :(. Lets see.
+This is how much output i attain on Space Invaders.
+
+![Game](cemu/emulation/res/ss2.png)

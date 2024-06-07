@@ -1,14 +1,27 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "sound.h"
-
+#include "logger.h"
 #include <allegro5/allegro.h>
+#include <allegro5/allegro_acodec.h>
+#include <allegro5/allegro_audio.h>
+
 
 ALLEGRO_SAMPLE* sounds[TOTAL_SOUNDS];
 
 
 bool init_sounds() {
-	char path[256];
+	if (!al_install_audio()) {
+		debug_print("Could not install audio addon!", ERROR);
+		return false;
+	}
+
+	if (!al_init_acodec_addon()) {
+		debug_print("Could not install acodec addon!", ERROR);
+		return false;
+	}
+
+	char path[256] = { 0 };
 
 	sprintf(path, "%s%s", SOUND_FILES, "/kill.wav");
 	sounds[KILL] = al_load_sample(path);
@@ -52,3 +65,4 @@ void deinit_sounds() {
 	for (int i = 0; i < TOTAL_SOUNDS; i++)
 		al_destroy_sample(sounds[i]);
 }
+

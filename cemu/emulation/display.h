@@ -6,8 +6,8 @@
 #ifndef DISPLAY_H_
 #define DISPLAY_H
 
-
-extern int display_width;
-extern int display_height;
+bool init_gui(int, int);
 void render_mem(uint8_t*);
+void destroy_gui();
+double get_time_seconds();	//did i need to wrap it?
 #endif
