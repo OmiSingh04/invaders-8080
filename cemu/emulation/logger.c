@@ -8,7 +8,6 @@ static char instruction_str[20];
 
 static bool continue_log = true;
 bool continue_test = true;
-
 static void set_level(int level) {
 	switch (level) {
 		case TRACE:{
@@ -141,6 +140,6 @@ void log_instruction_state(state_8080 state) {
 	fprintf(log_files[INSTRUCTIONS], "sp - %04X\n", state.sp);
 	fprintf(log_files[INSTRUCTIONS], "mem[stack] = %02X\n", state.memory[state.sp]);
 	fprintf(log_files[INSTRUCTIONS], "mem[stack + 1] = %02X\n", state.memory[(state.sp + 1) & 0xFFFF]);
-	fprintf(log_files[INSTRUCTIONS], "*********************************************************\n");
+	fprintf(log_files[INSTRUCTIONS], "*********************************************************\n\n");
 	fprintf(log_files[INSTRUCTIONS], "%s\n", instruction_str);
 }

@@ -29,11 +29,13 @@ Its still extremely buggy, but the CPU passes the diagnostic tests from
 <br>
 [CPUDIAG.asm](http://www.emulator101.com/files/cpudiag.asm). <br>
 [8080PRE.COM](https://altairclone.com/downloads/cpu_tests/). <br>
+[CPUTEST.COM](https://altairclone.com/downloads/cpu_tests/). <br>
+And most of [8080EXM.COM](https://altairclone.com/downloads/cpu_tests/), the final boss. <br>
+
+
 It can display the home screen a little bit. <br>
 
 After reading that cpudiag is usually not that thorough, im running it through other tests to check my implementation. I hope to get the game up and running on it soon.
-
-I have given up hope on passing CPUTEST. It requires a proper implementation of the auxillary carry but i cant get that right.
 
 This is how much output i attain on Space Invaders.
 

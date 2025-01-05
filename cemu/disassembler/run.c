@@ -17,7 +17,7 @@ unsigned char *read_rom(FILE* rom, size_t size){
 	unsigned char* buffer = malloc(size);
 	if(buffer == NULL) {printf("NULL"); return buffer;}
 	size = fread(buffer, sizeof(char), size, rom);
-	printf("%u bytes read\n", size);
+	printf("%lld bytes read\n", size);
 	return buffer;
 }
 	
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 	size = file_size(file);
-	printf("%u bytes file\n", size);
+	printf("%lld bytes file\n", size);
 	unsigned char* buffer = read_rom(file, size);	//returns a heap allocated string containing the rom
 	uint16_t pc = 0;
 	while (pc < size) 

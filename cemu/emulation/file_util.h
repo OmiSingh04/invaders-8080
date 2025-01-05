@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "state.h"
 
-enum rom { EXM = '5', EXER = '4', PRE = '3', CPUTEST = '2', ROM = '1' };
+enum rom { CPUDIAG = '6', EXM = '5', EXER = '4', PRE = '3', CPUTEST = '2', ROM = '1' };
 
 int load_file(state_8080*, char);
 

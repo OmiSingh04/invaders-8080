@@ -13,6 +13,9 @@ set(DIAG_PATH ${CMAKE_SOURCE_DIR}/rom/CPUTEST.COM)
 set(EXER_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXER.COM)
 set(EXM_PATH ${CMAKE_SOURCE_DIR}/rom/8080EXM.COM)
 set(PRE_PATH ${CMAKE_SOURCE_DIR}/rom/8080PRE.COM)
+set(EX1_PATH ${CMAKE_SOURCE_DIR}/rom/8080EX1.COM)
+set(CPUDIAG_PATH ${CMAKE_SOURCE_DIR}/rom/cpudiag.bin)
+
 
 add_executable(emulate8080 ${SOURCES} ${HEADERS})
 
@@ -24,6 +27,8 @@ target_compile_definitions(emulate8080 PRIVATE -DEXER_PATH="${EXER_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DPRE_PATH="${PRE_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DEXM_PATH="${EXM_PATH}")
 target_compile_definitions(emulate8080 PRIVATE -DDIAG_PATH="${DIAG_PATH}")
+target_compile_definitions(emulate8080 PRIVATE -DCPUDIAG_PATH="${CPUDIAG_PATH}")
+
 
 #target_compile_options(emulate8080 PRIVATE ${ARGS}) 
 
