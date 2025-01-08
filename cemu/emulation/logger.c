@@ -93,15 +93,20 @@ void log_instruction_state_2(state_8080 state) {
 
 	disassemble_8080(state.memory, state.pc, instruction_str);
 
-	fprintf(log_files[INSTRUCTIONS], "\nAF = %04X BC = %04X DE = %04X HL = %04X PC = %04X SP = %04X",
+	//fprintf(log_files[INSTRUCTIONS], "\nAF = %04X BC = %04X DE = %04X HL = %04X PC = %04X SP = %04X",
+	//	(state.A << 8 | bits), (state.B << 8 | state.C), (state.D << 8 | state.E), (state.H << 8 | state.L), state.pc, state.sp);
+
+	fprintf(log_files[INSTRUCTIONS], "%04X%04X%04X%04X%04X%04X",
 		(state.A << 8 | bits), (state.B << 8 | state.C), (state.D << 8 | state.E), (state.H << 8 | state.L), state.pc, state.sp);
+	fprintf(log_files[INSTRUCTIONS], "%02X", state.memory[state.pc]);
 
-	fprintf(log_files[INSTRUCTIONS], " (%02X %02X %02X %02X)",
-	state.memory[state.pc], state.memory[(state.pc + 1) & 0xFFFF], 
-	state.memory[(state.pc + 2) & 0xFFFF], state.memory[(state.pc + 3) & 0xFFFF]);
 
-	fprintf(log_files[INSTRUCTIONS], "\nF = %d SF = %d ZF = %d HF = %d PF = %d CF = %d", bits, state.flag.s, state.flag.z, 
-		state.flag.ac, state.flag.p, state.flag.c);
+	//fprintf(log_files[INSTRUCTIONS], " (%02X %02X %02X %02X)",
+	//state.memory[state.pc], state.memory[(state.pc + 1) & 0xFFFF], 
+	//state.memory[(state.pc + 2) & 0xFFFF], state.memory[(state.pc + 3) & 0xFFFF]);
+
+	//fprintf(log_files[INSTRUCTIONS], "\nF = %d SF = %d ZF = %d HF = %d PF = %d CF = %d", bits, state.flag.s, state.flag.z, 
+	//	state.flag.ac, state.flag.p, state.flag.c);
 
 
 	//fprintf(log_files[INSTRUCTIONS], "%s\n", instruction_str);

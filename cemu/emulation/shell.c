@@ -41,17 +41,22 @@ int main(int argc, char* argv[]){
 	long total_cycles = 0;
 	debug_print("CPU set up!\n", DEBUG); 
 	//log discretes, only 100000 at a time to not generate gigabytes of logs.
+
+
+	long instruction_start = 2681124450;
+	long instruction_end = 2749404458;
+
 	if (c != ROM) {
 		while (continue_test) {
-			if (cpu.instructions_ran == 2817660000)
+			if (cpu.instructions_ran == instruction_start)
 				x = true;
 
 
-			if (cpu.instructions_ran > 2817670000)
-				break;
-			
-			if (x)
-				log_instruction_state_2(cpu);
+			//if (cpu.instructions_ran > instruction_end)
+			//	break;
+			//
+			//if (x)
+			//	log_instruction_state_2(cpu);
 
 			int current_cycles;
 			emulate_8080(&cpu, &current_cycles);

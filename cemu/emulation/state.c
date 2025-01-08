@@ -688,7 +688,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			state->memory[state->H << 8 | state->L]++;
 			state->flag.ac = (state->memory[state->H << 8 | state->L] & 0xF) == 0x0;
 			state->flag.z = state->memory[state->H << 8 | state->L] == 0;
-			state->flag.s = state->memory[state->H << 8 | state->L] & 0x80 != 0;
+			state->flag.s = (state->memory[state->H << 8 | state->L] & 0x80) != 0;
 			state->flag.p = parity_check(state->memory[state->H << 8 | state->L]);
 			*cycles_consumed = 10;
 			break;
@@ -2441,7 +2441,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 
 			if(lower > 9 || state->flag.ac)
 				perform_add += 0x6;
-			if (higher > 9 || (higher >= 9 && lower >= 9) || state->flag.c) {
+			if (higher > 9 || (higher >= 9 && lower > 9) || state->flag.c) {
 				perform_add += 0x60;
 				carry = 1;
 			}
