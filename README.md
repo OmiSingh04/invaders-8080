@@ -24,7 +24,8 @@ Player 2 -
     START - Num 2
 ```
 
-The CPU is fully functional, but emulating the rest of the arcade machine is work in progress.
+The CPU is fully functional. <br>
+The rest of the arcade machine is also finished.
 
 <br>
 [CPUDIAG.asm](http://www.emulator101.com/files/cpudiag.asm). <br>
@@ -32,8 +33,8 @@ The CPU is fully functional, but emulating the rest of the arcade machine is wor
 [CPUTEST.COM](https://altairclone.com/downloads/cpu_tests/). <br>
 [8080EXM.COM](https://altairclone.com/downloads/cpu_tests/), the final boss. <br>
 
-It can display the home screen a little bit. <br>
+![Game](cemu/emulation/res/invaders_crop.gif)
 
-This is how much output i attain on Space Invaders.
-
-![Game](cemu/emulation/res/ss2.png)
+### TODO
+* Remove additional debug functions which I no longer use in it.
+* Check if this runs in linux directly or needs a change

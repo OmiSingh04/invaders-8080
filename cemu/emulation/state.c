@@ -8,10 +8,20 @@
 #include "sound.h"
 #include "logger.h"
 
+//i will just set my own rules for which bits represent which couns.
+static struct {
+	uint8_t FLEET1 : 1;
+	uint8_t FLEET2 : 1; 
+	uint8_t FLEET3 : 1; 
+	uint8_t FLEET4 : 1; 
+	uint8_t UFO : 1;
+	uint8_t SHOOT : 1;
+	uint8_t DIE : 1;
+	uint8_t KILL : 1;
+} sound_bits = {0x00};
+
 static bool cpm_call = false;
 extern bool game;
-
-
 
 
 int init_state(state_8080* state){ //the state will be defined in the main
@@ -63,9 +73,9 @@ bool generate_vblank(state_8080* state, uint8_t opcode){//emulate the generation
 	if (!state->interrupt)
 		return false;
 	uint8_t exp = opcode & 0x38;
-	uint16_t ret = state->pc + 1;
-	state->memory[state->sp - 1] = ret >> 8; 
-	state->memory[state->sp - 2] = ret & 0xFF;
+	uint16_t ret = state->pc;
+	state->memory[(state->sp - 1) & 0xFFFF] = ret >> 8; 
+	state->memory[(state->sp - 2) & 0xFFFF] = ret & 0xFF;
 	state->pc = exp;		
 	state->sp -= 2;
 	return true;
@@ -86,13 +96,13 @@ void machine_in(state_8080* state, int port) {
 			//coin 2p_start 1p_start 1 1p_fire 1p_left 1p_right nil
 			uint8_t byte = 0;
 		
-			byte |= ((!key_state[COIN_INSERT]) << 0);
-			byte |= (key_state[P2_START] << 1);
-			byte |= (key_state[P1_START] << 2);
-			byte |= (1 << 3);
-			byte |= (key_state[P1_FIRE] << 4);
-			byte |= (key_state[P1_LEFT] << 5);
-			byte |= (key_state[P1_RIGHT] << 6);
+			byte |= (key_state[COIN_INSERT] << 0);
+			byte |= (key_state[P2_START]    << 1);
+			byte |= (key_state[P1_START]    << 2);
+			byte |= (1                      << 3);
+			byte |= (key_state[P1_FIRE]     << 4);
+			byte |= (key_state[P1_LEFT]     << 5);
+			byte |= (key_state[P1_RIGHT]    << 6);
 			/*
 			int place = 1;
 			for (int i = 0; i < 8; i++, place <<= 1) {
@@ -103,9 +113,6 @@ void machine_in(state_8080* state, int port) {
 			break;
 		}
 		case 2: {
-			//DIP_1(life) DIP_2(life) TILT DIP_3(extra ship at) P2_shot P2_left p2_right dip_7(toggle coin info)
-			//THESE DIPSWITCHES ARE OWNER CONTROLLED I THINK? ill just set them to constants
-			//i have put the settings - 3 ships per life, no tilt, extra ship at 1000, coin info shall be displayed
 			
 			uint8_t byte = 0;
 
@@ -122,7 +129,8 @@ void machine_in(state_8080* state, int port) {
 		case 3: {
 			//pass 8 bits based on the offset to the accumulator - Asm Manual - Input/Output Page 2
 			//https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
-			state->A = (state->shift_register << state->shift_offset) >> 8;
+			//state->A = (state->shift_register << state->shift_offset) >> 8;
+			state->A = (state->shift_register >> (8 - state->shift_offset)) & 0xFF;
 			break;
 		}
 	}
@@ -138,18 +146,34 @@ void machine_out(state_8080* state, int port) {
 		}
 
 		case 3: {
-			//emulating this is as easy as reading the individual bits and playing the necessary sounds yourself. (i think)
-			if (state->A & 0x1) play_sound(UFO);
-			if (state->A & 0x2) play_sound(SHOOT);
-			if (state->A & 0x4) play_sound(DIE);
-			if (state->A & 0x8) play_sound(KILL);
+			//check if the bits have changed from 0 to 1. not alternating.
+			if ((state->A & 0x1) & (~sound_bits.UFO)) 
+				play_sound(UFO);
+			sound_bits.UFO = state->A & 0x1;
+			if (((state->A >> 1) & 0x1) & (~sound_bits.SHOOT)) 
+				play_sound(SHOOT);
+			sound_bits.SHOOT = state->A >> 1;
+			if (((state->A >> 2) & 0x1) & (~sound_bits.DIE)) 
+				play_sound(DIE);
+			sound_bits.DIE = state->A >> 2;
+			if (((state->A >> 3) & 0x1) & (~sound_bits.KILL))
+				play_sound(KILL);
+			sound_bits.KILL = state->A >> 3;
 			break;
 		}
 		case 5: {
-			if (state->A & 0x1) play_sound(FLEET_MOVEMENT_1);
-			if (state->A & 0x2) play_sound(FLEET_MOVEMENT_2);
-			if (state->A & 0x4) play_sound(FLEET_MOVEMENT_3);
-			if (state->A & 0x8)	play_sound(FLEET_MOVEMENT_4);
+			if ((state->A & 0x1) & (~sound_bits.FLEET1))
+				play_sound(FLEET_MOVEMENT_1);
+			sound_bits.FLEET1 = state->A & 0x1;
+			if (((state->A >> 1) & 0x1) & (~sound_bits.FLEET2))
+				play_sound(FLEET_MOVEMENT_2);
+			sound_bits.FLEET2 = state->A >> 1;
+			if (((state->A >> 2) & 0x1) & (~sound_bits.FLEET3))
+				play_sound(FLEET_MOVEMENT_3);
+			sound_bits.FLEET3 = state->A >> 2;
+			if (((state->A >> 3) & 0x1) & (~sound_bits.FLEET4))
+				play_sound(FLEET_MOVEMENT_4);
+			sound_bits.FLEET4 = state->A >> 3;
 			break;
 		}
 		// Port 4 shifts the register. 
@@ -2478,7 +2502,7 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 			break;
 		
 		//CMC
-	case 0x3F:
+		case 0x3F:
 			state->flag.c = !state->flag.c;
 			*cycles_consumed = 4;
 			break;
@@ -2505,14 +2529,6 @@ int emulate_8080(state_8080* state, int* cycles_consumed){//per instruction
 		case 0xEF:
 		case 0xF7:
 		case 0xFF:
-			break;
-
-		//HLT
-		case 0x76:
-			*cycles_consumed = 7;
-			puts("HALT INSTRUCTION");
-			//TODO: WAITS FOR A DAMN INTERRUPT
-			bytes = 1;
 			break;
 
 		default: {

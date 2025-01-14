@@ -15,15 +15,42 @@
 bool x = false;
 bool game = false;
 
+//returns cycles consumed
+static int execute_instruction(state_8080* cpu) {
+	int current_cycles = 0;
+	if (cpu->memory[cpu->pc] == 0xDB) {
+		uint8_t port = cpu->memory[(cpu->pc + 1) & 0xFFFF];
+		machine_key_press();
+		machine_in(cpu, port);
+		current_cycles = 10;
+		cpu->pc += 2;
+	}
+	else if (cpu->memory[cpu->pc] == 0xD3) {
+		uint8_t port = cpu->memory[(cpu->pc + 1) & 0xFFFF];
+		machine_out(cpu, port);
+		current_cycles = 10;
+		cpu->pc += 2;
+	}
+	else if (cpu->memory[cpu->pc] == 0x76) {
+		cpu->halted = true;
+		cpu->pc += 1;
+		current_cycles = 7;
+	}
+	else 
+		emulate_8080(cpu, &current_cycles);
+
+	return current_cycles;
+}
+
+
 int main(int argc, char* argv[]){
-	init_logger();
-	state_8080 cpu = {0, 0, 0, 0, 0, 0, 0, false, {0x00}, 0, 0, 0, 0, NULL, 0, 0};
+	state_8080 cpu = {0, 0, 0, 0, 0, 0, 0, false, {0x00}, 0, 0, 0, 0, NULL, 0, 0, false};
 	if (!init_state(&cpu)){
 		exit(1);
 	}
 	//Select program
 	puts("Enter the value for the test/rom you want to load");
-	puts("1. SPACE INVADERS\n2. CPUTEST\n3. 8080PRE\n4. 8080EXER\n5. 8080EXM\n 6. CPUDIAG");
+	puts("1. SPACE INVADERS\n2. CPUTEST\n3. 8080PRE\n4. 8080EXER\n5. 8080EXM\n6. CPUDIAG\n");
 	char c = getchar();
 	if (c == EOF) {
 		deinit_state(&cpu);
@@ -43,27 +70,28 @@ int main(int argc, char* argv[]){
 	//log discretes, only 100000 at a time to not generate gigabytes of logs.
 
 
-	long instruction_start = 2681124450;
-	long instruction_end = 2749404458;
+	//long instruction_start = 2681124450;
+	//long instruction_end = 2749404458;
 
 	if (c != ROM) {
+		//init_logger();//init and terminate if using log_instruction_state
 		while (continue_test) {
-			if (cpu.instructions_ran == instruction_start)
-				x = true;
-
+			//if (cpu.instructions_ran == instruction_start)
+			//	x = true;
 
 			//if (cpu.instructions_ran > instruction_end)
 			//	break;
-			//
+
+			//to generate logs between a range. the logs generated can be large, in lots of gigabytes, possibly, so narrow the range.
 			//if (x)
-			//	log_instruction_state_2(cpu);
+			//	log_instruction_state(cpu);
 
 			int current_cycles;
 			emulate_8080(&cpu, &current_cycles);
 
 			if(cpu.pc == 0)	break;
-
 		}
+		//terminate_logger();
 	}
 	else {
 		//run game
@@ -72,74 +100,41 @@ int main(int argc, char* argv[]){
 		int display_width = 672;
 		if (!init_gui(display_width, display_height))
 			goto deinit;
-			
 
 		int clocks_per_second = 2000000;
 		int interrupts_per_second = 120;
 		double clocks_per_interrupt = (double)clocks_per_second / interrupts_per_second;
 
-		double last_time = get_time_seconds();
-
-		bool vblank = false;
-
-		int frames = 0;
-
-		double start = last_time;
 		long cycles_consumed = 0;
+		bool halt_pause = false; //if true, pause execution until interrupt.
 
-		int breaks = 0;
-		
 
 		while (true) {
-			//Get the current time each iteration
-
-			if (cpu.pc == 0) {
-				breaks++;
-				if (breaks == 2) break;
+			double last_time = get_time_seconds();
+			while (cycles_consumed < clocks_per_interrupt) {
+				if(cpu.halted) break;
+				cycles_consumed += execute_instruction(&cpu);
 			}
-			if (cycles_consumed < clocks_per_interrupt) {
-				int current_cycles = 0;
-				if (cpu.memory[cpu.pc] == 0xDB) {
-					machine_key_press();
-					uint8_t port = cpu.memory[(cpu.pc + 1) & 0xFFFF];
-					machine_in(&cpu, port);
-					current_cycles = 10;
-					cpu.pc += 2;
-				}
-				else if (cpu.memory[cpu.pc] == 0xD3) {
-					uint8_t port = cpu.memory[(cpu.pc + 1) & 0xFFFF];
-					machine_out(&cpu, port);
-					current_cycles = 10;
-					cpu.pc += 2;
-				}
-				else {
-					emulate_8080(&cpu, &current_cycles);
-					cycles_consumed += current_cycles;
-					total_cycles += current_cycles;
-				}
+			generate_vblank(&cpu, 0xCF);
+			//above generated an interrupt. meaning if the cpu is halted, we must UNHALT IT.
+			cpu.halted = false;
+			cycles_consumed -= clocks_per_interrupt;
+			while (cycles_consumed < clocks_per_interrupt) {
+				if(cpu.halted) break;
+				cycles_consumed += execute_instruction(&cpu);
 			}
-			else {
-				double now = al_get_time();
-				if (now - last_time > (1.0 / interrupts_per_second)) {
-					if (!vblank) {
-						generate_vblank(&cpu, 0xCF);
-						vblank = true;
-					}
-					else {
-						render_mem(cpu.memory);
-						generate_vblank(&cpu, 0xD7);
-						vblank = false;
-					}
-					last_time = now;
-					cycles_consumed -= clocks_per_interrupt;
-				}
+			render_mem(cpu.memory);
+			generate_vblank(&cpu, 0xD7);
+			cpu.halted = false;
+			cycles_consumed -= clocks_per_interrupt;
+			double now = get_time_seconds();
+			while ((now - last_time) < (1.0 / 60.0)) {
+				now = get_time_seconds();
 			}
-			if(al_key_down(&keyboard_state, ALLEGRO_KEY_ESCAPE)) //need to wrap this function too
-					break;
+			if(al_key_down(&keyboard_state, ALLEGRO_KEY_ESCAPE)) break;
 		}
 		deinit: destroy_gui();
 	}
-	terminate_logger();
 	free(cpu.memory);
 	return 0;
 }

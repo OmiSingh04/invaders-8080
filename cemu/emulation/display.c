@@ -47,8 +47,6 @@ bool init_gui(int display_width, int display_height) {
 		return false;
 	}
 
-
-
 	debug_print("All Modules Installed!", DEBUG);
 
 	//display
@@ -72,7 +70,7 @@ bool init_gui(int display_width, int display_height) {
 	al_register_event_source(queue, al_get_display_event_source(display));
 
 	debug_print("INITIATED GUI COMPONENTS!", DEBUG);
-
+	
 	return true;
 }
 

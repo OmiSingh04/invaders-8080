@@ -40,6 +40,8 @@ typedef struct state_8080{ //registers
 	unsigned long cycles_consumed;
 	unsigned long instructions_ran;
 
+	bool halted;
+
 } state_8080;
 
 int init_state(state_8080*);

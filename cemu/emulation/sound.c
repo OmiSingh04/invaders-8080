@@ -3,8 +3,8 @@
 #include "sound.h"
 #include "logger.h"
 #include <allegro5/allegro.h>
-#include <allegro5/allegro_acodec.h>
 #include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 
 
 ALLEGRO_SAMPLE* sounds[TOTAL_SOUNDS];
@@ -18,6 +18,11 @@ bool init_sounds() {
 
 	if (!al_init_acodec_addon()) {
 		debug_print("Could not install acodec addon!", ERROR);
+		return false;
+	}
+
+	if (!al_reserve_samples(8)) {
+		debug_print("Could not reserve samples!", ERROR);
 		return false;
 	}
 
@@ -52,6 +57,7 @@ bool init_sounds() {
 	for (int i = 0; i < TOTAL_SOUNDS; i++)
 		if (!sounds[i]) return false;
 
+	printf("SOUNDS INITIATED!\n");
 	return true;
 }
 
