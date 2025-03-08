@@ -1,7 +1,6 @@
 # Space Invaders on the 8080
 
-Emulator is a work in progress!! <br>
-A space invaders emulator, like the one from arcade machines back in 1970s. The Space Invaders ran on an Intel 8080. This is supposed to emulate that entire machine, rather than the 8080 alone. The buttons and coin inserts are mapped to the keyboard. <br>
+A space invaders emulator, like the one from arcade machines from 1970s. The Space Invaders ran on an Intel 8080. This is supposed to emulate that entire machine, rather than the 8080 alone. The buttons and coin inserts are mapped to the keyboard. <br>
 
 GUI using [allegro](https://liballeg.org/)<br>
 
@@ -25,7 +24,8 @@ Player 2 -
 ```
 
 The CPU is fully functional. <br>
-The rest of the arcade machine is also finished.
+
+The below cpu tests pass successfully.
 
 <br>
 [CPUDIAG.asm](http://www.emulator101.com/files/cpudiag.asm). <br>
@@ -35,6 +35,8 @@ The rest of the arcade machine is also finished.
 
 ![Game](cemu/emulation/res/invaders_crop.gif)
 
-### TODO
-* Remove additional debug functions which I no longer use in it.
-* Check if this runs in linux directly or needs a change
+<br>
+The game rom itself is not within the repository.
+<br>
+
+The Visual Studio Project files should generate properly.
